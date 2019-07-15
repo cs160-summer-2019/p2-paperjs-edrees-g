@@ -1,5 +1,4 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,17 +7,17 @@
 
 	<script type="text/javascript" src="{% static 'coloring/vendors/jquery/jquery-3.3.1.min.js' %}"></script>
 	<script type="text/javascript" src="{% static 'coloring/vendors/paper/paper-full.min.js' %}"></script>
+  <script src="{% static '/vendors/hammer/hammer.min.js' %}"></script>
+	<script src="{% static '/vendors/hammer/jquery.hammer.js' %}"></script>
 
 	<style type="text/css">
 		#color-palette {
-			width: 300px;
+			width: 35px;
 			background-color: #f1f1f1;
-			display: flex;
-			flex-wrap: wrap;
 			position: absolute;
 			top: 0;
+      right: 0;
 		}
-
 		.swatch {
 			width: 24px;
 			height: 24px;
@@ -27,7 +26,6 @@
 			border-radius: 12px;
 			margin: 3px;
 		}
-
 		#myCanvas {
 			padding-left: 0;
 		    padding-right: 0;
@@ -35,26 +33,66 @@
 		    margin-right: auto;
 		    display: block;
 		}
+    .save_button {
+      top: 0;
+      left: 0;
+      background-color: #F5F5F5;
+      position: absolute;
+      padding: 10px;
+      border-radius: 25px;
+      margin: 10px 10px;
+    }
+    
+    .reset_button {
+      top:0;
+      left: 75px;
+      background-color: #F5F5F5;
+      position: absolute;
+      padding: 10px;
+      border-radius: 25px;
+      margin: 10px 10px;
+    }
+    
+    .hide_show_button {
+      top: 0;
+      right: 35px;
+      background-color: #F5F5F5;
+      position: absolute;
+      padding: 10px;
+      border-radius: 25px;
+      margin: 10px 10px;
+    }
+    
+    .white_button {
+      width: 40px;
+			background-color: #F5F5F5;
+			display: flex;
+			flex-wrap: wrap;
+			position: absolute;
+			float: left;
+      top: 0;
+      left: 150px;
+      border-radius: 25px;
+      margin: 13px 10px;
+		} 
+    
 	</style>
 
 	<script type="text/javascript" canvas="canvas">
 		window.onload = function() {
 			var canvas = document.getElementById('myCanvas');
-
 			// coloring page
 			var mandala = {
 				item: null,
 				lastClicked: null,
 				filePath: '/static/coloring/images/mandala-freepik.svg'
 			};	
-
 			// color palette
 			var cp = {
 				history: ["#000000"], // black selected by default
 				options: [],
 				$container: $('#color-palette')
 			}
-
 			// your rectangle gradient interaction goes in this function
 			// you may also add code outside of the function (e.g., global variables)
 			function myGradientInteraction(){
@@ -75,12 +113,10 @@
           };
 				}   
 			}
-
 			// your custom interaction goes here!
 			// you may replace everything
 			function myCustomInteraction() {
 				var tool = new paper.Tool();
-
 				tool.onMouseDown = function (event) {
 				    var hit = mandala.item.hitTest(event.point, { tolerance: 10, fill: true });
 				    if (hit) {
@@ -88,11 +124,8 @@
 				    }
 				}
 			}
-
-
 			// create a color palette with the given colors
 			function createColorPalette(colors){
-
 				// create a swatch for each color
 				for (var i = colors.length - 1; i >= 0; i--) {
 					var $swatch = $("<div>").css("background-color", colors[i])
@@ -104,7 +137,6 @@
 					cp.$container.append($swatch);
 				}
 			}
-
 			// loads a set of colors from a json to create a color palette
 			function getColorsCreatePalette(){
 				cp.$container.html(" ");
@@ -116,15 +148,22 @@
 					createColorPalette(cp.options);
 				});
 			}
-
+   
+      function createEraser(){
+        var $swatch = $("<div>").css("background-color", "white").addClass("swatch");
+        $swatch.click(function(){
+          cp.history.push($(this).css("background-color"));
+        }); 
+        $(".white_button").append($swatch);
+      }
+      
 			function init(custom){
 				paper.setup(canvas);
 				getColorsCreatePalette();
-
+        createEraser();
 				paper.project.importSVG(mandala.filePath, function(item) { 
 					mandala.item = item._children["design-freepik"];
 				    paper.project.insertLayer(0,mandala.item);
-
 				    if (custom) {
 				    	myCustomInteraction();	
 				    } else {
@@ -133,7 +172,6 @@
 					
 				}); 
 			}
-
 			// To see your myGradientInteraction version visit: 
 			// http://<your url>:8000/coloring/?type=gradient
 			// To see your myCustomInteraction version visit: 
@@ -144,6 +182,35 @@
 			} else {
 				init(true);
 			}
+      
+      let $saveButton = $(".save_button");
+      $saveButton.on('click', () => {
+        window.print();
+        return false;
+      })
+      let $resetButton = $(".reset_button");
+      $resetButton.on('click', () => {
+        location.reload();
+      })
+      let $toggleButton = $(".hide_show_button");
+      let $colorPalette = $("#color-palette")
+      $toggleButton.on('click', () => {
+        $colorPalette.toggle();
+      })
+      
+      var scale = 1; 
+      var hammer = new Hammer(canvas);
+      hammer.get('pinch').set({enable: true});
+      hammer.on('pinchin', function(e) {
+                scale = scale - 0.02; 
+                $('#myCanvas img').css('zoom', scale);
+      });
+      hammer.on('pinchout', function(e) {
+                scale = scale + 0.02; 
+                $('#myCanvas img').css('zoom', scale);
+      });
+               
+      
 		}
 	</script>
 </head>
@@ -151,5 +218,9 @@
 
 	<canvas id="myCanvas" width="750px" height="750px"></canvas>
 	<div id="color-palette"></div>
+  <button class="white_button"> </button>
+  <button class="save_button">Save</button>
+  <button class="reset_button">Reset</button>
+  <button class="hide_show_button">Hide/Show</button>
 </body>
 </html>
